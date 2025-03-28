@@ -245,20 +245,21 @@ class _EventFeedScreenState extends State<EventFeedScreen> {
         return InkWell(
           onTap: () {
             print('Tapped on Event ID: ${event.eventId}');
-            // --- Navigeer naar Detail Scherm ---
-            if (event.videoUrl != null) { // Alleen navigeren als er een video URL is
+            if (event.videoUrl != null) {
               Navigator.push(
                 context,
                 MaterialPageRoute(
                   builder: (context) => EventDetailScreen(
                     event: event,
-                    // Geef event en preyName mee
                     preyName: preyName,
+                    // --- VOEG DEZE TOE ---
+                    apiService: _apiService, // Geef de service instance mee
+                    preyNames: _preyNames,   // Geef de prey names map mee
+                    // --- EINDE TOEVOEGING ---
                   ),
                 ),
               );
             } else {
-              // Optioneel: Toon melding als er geen video is
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(content: Text('Geen video beschikbaar voor dit event.')),
               );
