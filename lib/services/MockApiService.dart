@@ -33,67 +33,67 @@ class MockApiService /* implements IApiService */ {
     Prey(preyId: 5, name: "Vogel (klein)"),
   ];
 
-  // Voorbeeld Events (gebruik preyId's van hierboven)
-  final List<Event> _mockEvents = [
-    Event(
-      eventId: 101,
-      preyId: 1, // Muis
-      time: DateTime.now().subtract(Duration(minutes: 5)),
-      confidence: 0.92,
-    ),
-    Event(
-      eventId: 102,
-      preyId: 3, // Woelmuis
-      time: DateTime.now().subtract(Duration(minutes: 25)),
-      confidence: 0.75,
-    ),
-    Event(
-      eventId: 103,
-      preyId: 2, // Rat
-      time: DateTime.now().subtract(Duration(hours: 1, minutes: 15)),
-      confidence: 0.88,
-    ),
-    Event(
-      eventId: 104,
-      preyId: 1, // Muis
-      time: DateTime.now().subtract(Duration(hours: 2, minutes: 55)),
-      confidence: 0.61,
-    ),
-    Event(
-      eventId: 105,
-      preyId: 5, // Vogel (klein)
-      time: DateTime.now().subtract(Duration(hours: 4)),
-      confidence: 0.95,
-    ),
-  ];
-
-  // Houd bij welke de laatste eventId was om "nieuwe" te simuleren
+  // Houd bij welke de laatste eventId was
   int _lastEventId = 105;
+
+  // Genereer mock events MET video/thumbnail URLs
+  List<Event> _generateMockEvents() {
+    _lastEventId = 105; // Reset voor consistentie bij elke call in dit voorbeeld
+    List<Event> events = [
+      Event(
+          eventId: 101, preyId: 1, time: DateTime.now().subtract(Duration(minutes: 5)), confidence: 0.92,
+          // VOEG TOE: URLs
+          thumbnailUrl: 'https://picsum.photos/seed/101/300/200', // Gebruik eventId als 'seed'
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4' // Standaard test video
+      ),
+      Event(
+          eventId: 102, preyId: 3, time: DateTime.now().subtract(Duration(minutes: 25)), confidence: 0.75,
+          thumbnailUrl: 'https://picsum.photos/seed/102/300/200',
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4' // Andere test video
+      ),
+      Event(
+          eventId: 103, preyId: 2, time: DateTime.now().subtract(Duration(hours: 1, minutes: 15)), confidence: 0.88,
+          thumbnailUrl: 'https://picsum.photos/seed/103/300/200',
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4'
+      ),
+      Event(
+          eventId: 104, preyId: 1, time: DateTime.now().subtract(Duration(hours: 2, minutes: 55)), confidence: 0.61,
+          thumbnailUrl: 'https://picsum.photos/seed/104/300/200',
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4'
+      ),
+      Event(
+          eventId: 105, preyId: 5, time: DateTime.now().subtract(Duration(hours: 4)), confidence: 0.95,
+          thumbnailUrl: 'https://picsum.photos/seed/105/300/200',
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4'
+      ),
+    ];
+    events.sort((a, b) => b.time.compareTo(a.time)); // Sorteer
+    return events;
+  }
 
   @override
   Future<List<Event>> fetchEvents() async {
     print("MockApiService: Fetching mock events...");
-    // Simuleer netwerkvertraging
     await Future.delayed(Duration(milliseconds: 500));
 
-    // Optioneel: Simuleer af en toe een nieuw event voor de polling test
-    // if (Random().nextInt(4) == 0 && _mockEvents.length < 10) { // 1 op 4 kans
-    //   _lastEventId++;
-    //   _mockEvents.insert(0, Event(
-    //       eventId: _lastEventId,
-    //       preyId: _mockPrey[Random().nextInt(_mockPrey.length)].preyId,
-    //       time: DateTime.now(),
-    //       confidence: Random().nextDouble() * (0.98 - 0.5) + 0.5 // Tussen 0.5 en 0.98
-    //     )
-    //   );
-    //   print("MockApiService: Added a new mock event!");
-    // }
+    // Simuleer af en toe nieuw event
+    List<Event> currentEvents = _generateMockEvents(); // Genereer verse lijst
+    if (Random().nextInt(5) == 0 && currentEvents.length < 10) {
+      _lastEventId++;
+      currentEvents.insert(0, Event(
+          eventId: _lastEventId,
+          preyId: _mockPrey[Random().nextInt(_mockPrey.length)].preyId,
+          time: DateTime.now(),
+          confidence: Random().nextDouble() * (0.98 - 0.5) + 0.5,
+          thumbnailUrl: 'https://picsum.photos/seed/$_lastEventId/300/200', // Nieuwe seed
+          videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/SubaruOutbackNavigatingAmbition.mp4' // Nog een andere video
+      )
+      );
+      print("MockApiService: Added a new mock event!");
+      currentEvents.sort((a, b) => b.time.compareTo(a.time)); // Hersorteer
+    }
 
-    // Sorteer altijd op tijd (nieuwste eerst) zoals de UI verwacht
-    _mockEvents.sort((a, b) => b.time.compareTo(a.time));
-
-    // Geef een kopie terug om onbedoelde aanpassingen te voorkomen
-    return List<Event>.from(_mockEvents);
+    return List<Event>.from(currentEvents); // Geef kopie terug
   }
 
   @override

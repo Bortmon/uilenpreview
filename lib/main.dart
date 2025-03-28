@@ -10,6 +10,7 @@ import 'models/prey.dart';
 import 'models/user_rating.dart';
 import 'services/MockApiService.dart'; // tijdelijk mock om te testen....
 import 'services/ApiService.dart'; // echte API <<<
+import 'event_detail_screen.dart';
 
 // --- De main functie die je app start ---
 void main() {
@@ -234,115 +235,166 @@ class _EventFeedScreenState extends State<EventFeedScreen> {
 
     // --- Data Loaded State (ListView met Cards) ---
     return ListView.builder(
-      // Voeg wat padding toe rond de hele lijst
       padding: const EdgeInsets.symmetric(vertical: 8.0, horizontal: 8.0),
       itemCount: _events.length,
       itemBuilder: (context, index) {
         final event = _events[index];
-        // Haal naam op, geef duidelijke fallback
-        final preyName = _preyNames[event.preyId] ?? 'Onbekend prooi (ID: ${event.preyId})';
+        final preyName = _preyNames[event.preyId] ?? 'Onbekend (ID: ${event.preyId})';
 
-        // Bouw een Card voor elk event
-        return Card(
-          elevation: 3, // Voeg wat schaduw toe
-          margin: const EdgeInsets.symmetric(vertical: 6.0), // Ruimte tussen kaarten
-          shape: RoundedRectangleBorder( // (Optioneel) Licht afgeronde hoeken
-            borderRadius: BorderRadius.circular(8.0),
-          ),
-          child: Padding(
-            padding: const EdgeInsets.all(12.0), // Padding binnen de kaart
+        // --- Wrap Card met InkWell voor klikbaarheid ---
+        return InkWell(
+          onTap: () {
+            print('Tapped on Event ID: ${event.eventId}');
+            // --- Navigeer naar Detail Scherm ---
+            if (event.videoUrl != null) { // Alleen navigeren als er een video URL is
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => EventDetailScreen(
+                    event: event,
+                    // Geef event en preyName mee
+                    preyName: preyName,
+                  ),
+                ),
+              );
+            } else {
+              // Optioneel: Toon melding als er geen video is
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Geen video beschikbaar voor dit event.')),
+              );
+            }
+          },
+          child: Card(
+            elevation: 3,
+            margin: const EdgeInsets.symmetric(vertical: 6.0),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8.0)),
+            clipBehavior: Clip.antiAlias, // Belangrijk zodat Image binnen de Card blijft
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start, // Lijn inhoud links uit
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // --- Top Row: Prooi Naam en Event ID ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween, // Spreid elementen
-                  crossAxisAlignment: CrossAxisAlignment.start, // Lijn bovenkant uit
-                  children: [
-                    Expanded( // Laat prooinaam groeien, voorkom overflow
-                      child: Text(
-                        preyName,
-                        style: TextStyle(
-                          fontSize: 17,
-                          fontWeight: FontWeight.bold,
-                          // Gebruik themakleur voor accent
-                          color: Theme.of(context).colorScheme.primary,
-                        ),
-                        overflow: TextOverflow.ellipsis, // Voeg ... toe bij te lange naam
+                // --- VIDEO THUMBNAIL ---
+                if (event.thumbnailUrl != null) // Toon alleen als URL bestaat
+                  Stack(
+                    alignment: Alignment.center, // Om play icoon te centreren
+                    children: [
+                      Image.network(
+                        event.thumbnailUrl!, // Gebruik ! omdat we op null checken
+                        height: 180, // Geef een vaste hoogte
+                        width: double.infinity, // Volle breedte van de kaart
+                        fit: BoxFit.cover, // Zorg dat afbeelding vult
+                        // Placeholder tijdens laden
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child; // Klaar met laden
+                          return Container(
+                            height: 180,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                              ),
+                            ),
+                          );
+                        },
+                        // Placeholder bij fout
+                        errorBuilder: (context, error, stackTrace) {
+                          return Container(
+                            height: 180,
+                            color: Colors.grey[300],
+                            child: Center(
+                              child: Icon(Icons.broken_image, color: Colors.grey[600], size: 40),
+                            ),
+                          );
+                        },
                       ),
-                    ),
-                    SizedBox(width: 8), // Kleine ruimte
-                    Text(
-                      'ID: ${event.eventId}',
-                      style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8), // Ruimte onder de top rij
+                      // Overlay met Play icoon
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.black.withOpacity(0.3), // Lichte overlay
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.play_circle_outline, color: Colors.white.withOpacity(0.9), size: 60),
+                      ),
+                    ],
+                  ),
+                // --- Padding alleen voor de tekstinhoud ---
+                Padding(
+                  padding: const EdgeInsets.all(12.0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // --- Top Row: Prooi Naam en Event ID ---
+                      Row(
+                        // ... (zoals voorheen) ...
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              preyName,
+                              style: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Theme.of(context).colorScheme.primary),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          SizedBox(width: 8),
+                          Text('ID: ${event.eventId}', style: TextStyle(fontSize: 12, color: Colors.grey[600])),
+                        ],
+                      ),
+                      SizedBox(height: 8),
 
-                // --- Detail Row: Tijd ---
-                Row(
-                  children: [
-                    Icon(Icons.schedule, size: 16, color: Colors.grey[700]),
-                    SizedBox(width: 8),
-                    Text(
-                      // Gebruik de formatter voor een leesbare datum/tijd
-                      _dateFormatter.format(event.time.toLocal()),
-                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 4), // Kleine ruimte
+                      // --- Detail Row: Tijd ---
+                      Row(
+                        // ... (zoals voorheen) ...
+                        children: [
+                          Icon(Icons.schedule, size: 16, color: Colors.grey[700]),
+                          SizedBox(width: 8),
+                          Text(_dateFormatter.format(event.time.toLocal()), style: TextStyle(fontSize: 14, color: Colors.grey[800])),
+                        ],
+                      ),
+                      SizedBox(height: 4),
 
-                // --- Detail Row: Confidence ---
-                Row(
-                  children: [
-                    // Icoon voor AI/zekerheid
-                    Icon(Icons.radar, size: 16, color: Colors.blueGrey),
-                    SizedBox(width: 8),
-                    Text(
-                      // Toon confidence als percentage
-                      'AI Zekerheid: ${(event.confidence * 100).toStringAsFixed(1)}%',
-                      style: TextStyle(fontSize: 14, color: Colors.grey[800]),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10), // Ruimte boven de knoppen
+                      // --- Detail Row: Confidence ---
+                      Row(
+                        // ... (zoals voorheen) ...
+                        children: [
+                          Icon(Icons.radar, size: 16, color: Colors.blueGrey),
+                          SizedBox(width: 8),
+                          Text('AI Zekerheid: ${(event.confidence * 100).toStringAsFixed(1)}%', style: TextStyle(fontSize: 14, color: Colors.grey[800])),
+                        ],
+                      ),
+                      SizedBox(height: 10),
 
-                // --- Divider (Optioneel) ---
-                // Divider(height: 1, thickness: 1),
-                // SizedBox(height: 6),
-
-                // --- Bottom Row: Action Buttons ---
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end, // Lijn knoppen rechts uit
-                  children: [
-                    // Optioneel: tekst bij de knoppen
-                    // Text(
-                    //   'Detectie correct?',
-                    //    style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                    // ),
-                    // SizedBox(width: 8),
-                    IconButton(
-                      tooltip: 'Correcte detectie', // Handig voor toegankelijkheid
-                      icon: Icon(Icons.thumb_up_alt_outlined), // Gebruik outlined iconen
-                      iconSize: 22, // Iets groter
-                      color: Colors.green.shade700,
-                      onPressed: () => _submitFeedback(event.eventId, true),
-                      splashRadius: 24, // Visuele feedback bij drukken
-                      visualDensity: VisualDensity.compact, // Maakt hit area kleiner
-                    ),
-                    // SizedBox(width: 0), // Kleine of geen ruimte tussen knoppen
-                    IconButton(
-                      tooltip: 'Incorrecte detectie (geef suggestie)',
-                      icon: Icon(Icons.thumb_down_alt_outlined), // Gebruik outlined iconen
-                      iconSize: 22,
-                      color: Colors.red.shade700,
-                      onPressed: () => _showSuggestionDialog(event.eventId),
-                      splashRadius: 24,
-                      visualDensity: VisualDensity.compact,
-                    ),
-                  ],
+                      // --- Bottom Row: Action Buttons ---
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end, // Lijn knoppen rechts uit
+                        children: [
+                          // --- GEBRUIK DEZE CORRECTE KNOPPEN ---
+                          IconButton(
+                            tooltip: 'Correcte detectie', // Handig voor toegankelijkheid
+                            icon: Icon(Icons.thumb_up_alt_outlined), // Gebruik outlined iconen
+                            iconSize: 22, // Iets groter
+                            color: Colors.green.shade700,
+                            // Deze onPressed was vergeten!
+                            onPressed: () => _submitFeedback(event.eventId, true),
+                            splashRadius: 24, // Visuele feedback bij drukken
+                            visualDensity: VisualDensity.compact, // Maakt hit area kleiner
+                          ),
+                          IconButton(
+                            tooltip: 'Incorrecte detectie (geef suggestie)',
+                            icon: Icon(Icons.thumb_down_alt_outlined), // Gebruik outlined iconen
+                            iconSize: 22,
+                            color: Colors.red.shade700,
+                            // Deze onPressed was vergeten!
+                            onPressed: () => _showSuggestionDialog(event.eventId),
+                            splashRadius: 24,
+                            visualDensity: VisualDensity.compact,
+                          ),
+                          // --- EINDE CORRECTE KNOPPEN ---
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -351,6 +403,12 @@ class _EventFeedScreenState extends State<EventFeedScreen> {
       },
     );
   }
+
+
+
+
+
+
   // Functie om feedback te sturen
   void _submitFeedback(int eventId, bool isCorrect, {int? suggestionId}) async {
     UserRating rating = UserRating(
