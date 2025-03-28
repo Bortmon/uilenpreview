@@ -1,6 +1,6 @@
-import 'dart:convert'; // Voor jsonDecode en jsonEncode
+import 'dart:convert';
 import 'package:http/http.dart' as http;
-import '../models/event.dart'; // Importeer je models
+import '../models/event.dart';
 import '../models/prey.dart';
 import '../models/user_rating.dart';
 
@@ -8,9 +8,7 @@ class ApiService {
 
   final String _baseUrl = "JOUW_API_BASIS_URL";
 
-  // Helper om de volledige URL te bouwen
   Uri _buildUri(String endpoint) {
-    // Zorg ervoor dat er geen dubbele slashes ontstaan
     String path = '/api/$endpoint'.replaceAll('//', '/');
     return Uri.parse('$_baseUrl$path');
   }

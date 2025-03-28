@@ -8,7 +8,8 @@ import 'package:intl/intl.dart';
 import 'models/event.dart';
 import 'models/prey.dart';
 import 'models/user_rating.dart';
-import 'services/ApiService.dart'; // Pas pad aan indien nodig
+import 'services/MockApiService.dart'; // tijdelijk mock om te testen....
+import 'services/ApiService.dart'; // echte API <<<
 
 // --- De main functie die je app start ---
 void main() {
@@ -41,13 +42,16 @@ class EventFeedScreen extends StatefulWidget {
 
 class _EventFeedScreenState extends State<EventFeedScreen> {
   // Maak een instance van ApiService (nu gedefinieerd in dit bestand of geïmporteerd)
-  final DateFormat _dateFormatter = DateFormat('dd MMM yyyy, HH:mm'); // Voorbeeld: 24 mei 2023, 15:30
-  final ApiService _apiService = ApiService();
+
+  //final ApiService _apiService = ApiService(); // << echte versie tijdelijk uitgezet mock versie
+  final MockApiService _apiService = MockApiService();
+
   List<Event> _events = [];
   bool _isLoading = true;
   String? _error;
   Timer? _pollingTimer;
   Map<int, String> _preyNames = {}; // Om prey ID naar naam te mappen
+  final DateFormat _dateFormatter = DateFormat('dd MMM yyyy, HH:mm'); // Voorbeeld: 24 mei 2023, 15:30
 
   @override
   void initState() {
